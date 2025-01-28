@@ -1248,6 +1248,35 @@ def convert_recursive(path, sheetid, outfile, kwargs):
                 raise InvalidXlsxFileException("File %s is not a zip file" % fullpath)
 
 
+def all_sheets_to_zip(xlsx_data: io.BytesIO, **options) -> bytes:
+    xlsx_buffer = io.BytesIO(xlsx_data)
+
+    x2c = Xlsx2csv(xlsx_buffer, **options)
+
+    zip_buffer = io.BytesIO()
+    with zipfile.ZipFile(zip_buffer, "w", compression=zipfile.ZIP_DEFLATED) as zf:
+        for sheet_info in x2c.workbook.sheets:
+            sheet_name = sheet_info["name"]
+            sheet_state = sheet_info["state"]
+
+            if x2c.options["exclude_hidden_sheets"] and sheet_state in (
+                "hidden",
+                "veryHidden",
+            ):
+                continue
+
+            csv_buffer = io.StringIO()
+            x2c._convert(sheet_info["index"], csv_buffer)
+            csv_content = csv_buffer.getvalue()
+
+            safe_sheet_name = re.sub(r'[\\/:*?"<>|]', "_", sheet_name)
+            csv_filename = f"{safe_sheet_name}.csv"
+
+            zf.writestr(csv_filename, csv_content)
+
+    return zip_buffer.getvalue()
+
+
 def main():
     try:
         signal.signal(signal.SIGPIPE, signal.SIG_DFL)
