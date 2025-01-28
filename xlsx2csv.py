@@ -1249,9 +1249,7 @@ def convert_recursive(path, sheetid, outfile, kwargs):
 
 
 def all_sheets_to_zip(xlsx_data: io.BytesIO, **options) -> bytes:
-    xlsx_buffer = io.BytesIO(xlsx_data)
-
-    x2c = Xlsx2csv(xlsx_buffer, **options)
+    x2c = Xlsx2csv(xlsx_data, **options)
 
     zip_buffer = io.BytesIO()
     with zipfile.ZipFile(zip_buffer, "w", compression=zipfile.ZIP_DEFLATED) as zf:
